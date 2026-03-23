@@ -1,0 +1,511 @@
+basePath: /api/v1
+definitions:
+  task-manager-api_internal_service.AITaskBreakdownRequest:
+    properties:
+      task_title:
+        type: string
+    required:
+    - task_title
+    type: object
+  task-manager-api_internal_service.AddCollaboratorRequest:
+    properties:
+      access_level:
+        enum:
+        - read_only
+        - edit
+        type: string
+      email:
+        type: string
+    required:
+    - access_level
+    - email
+    type: object
+  task-manager-api_internal_service.CreateSubTaskRequest:
+    properties:
+      description:
+        type: string
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        type: string
+      title:
+        maxLength: 150
+        type: string
+    required:
+    - title
+    type: object
+  task-manager-api_internal_service.CreateTaskRequest:
+    properties:
+      description:
+        type: string
+      due_date:
+        type: string
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        type: string
+      title:
+        maxLength: 150
+        type: string
+    required:
+    - title
+    type: object
+  task-manager-api_internal_service.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  task-manager-api_internal_service.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  task-manager-api_internal_service.UpdateTaskRequest:
+    properties:
+      description:
+        type: string
+      due_date:
+        type: string
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        type: string
+      status:
+        enum:
+        - pending
+        - in_progress
+        - completed
+        - overdue
+        type: string
+      title:
+        maxLength: 150
+        type: string
+    type: object
+  task-manager-api_pkg_utils.DefaultResponse:
+    properties:
+      data:
+        description: Payload data (dihilangkan jika kosong)
+      errors:
+        description: Detail error (dihilangkan jika kosong)
+      message:
+        description: Pesan untuk user/frontend
+        type: string
+      status:
+        description: '"success" atau "error"'
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: RESTful API untuk manajemen tugas dengan implementasi Clean Architecture
+    dan AI Assistant.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Task Manager API
+  version: "1.0"
+paths:
+  /ai/generate-tasks:
+    post:
+      consumes:
+      - application/json
+      description: Memecah tugas besar menjadi langkah-langkah kecil menggunakan Google
+        Gemini AI
+      parameters:
+      - description: Judul Tugas Besar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/task-manager-api_internal_service.AITaskBreakdownRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Generate Sub-Tasks dengan AI
+      tags:
+      - AI Assistant
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentikasi user dan mendapatkan JWT token
+      parameters:
+      - description: Kredensial Login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/task-manager-api_internal_service.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Login berhasil, token: eyJ...'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: format input salah'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'error: email atau password salah'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User Login
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Mendaftarkan user baru dengan email dan password
+      parameters:
+      - description: Data Registrasi
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/task-manager-api_internal_service.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Registrasi berhasil'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: format input salah / email sudah terdaftar'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register User Baru
+      tags:
+      - Authentication
+  /tasks:
+    get:
+      description: Mengambil daftar tugas milik user dengan dukungan pagination dan
+        filtering
+      parameters:
+      - description: 'Nomor Halaman (Default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Jumlah Data per Halaman (Default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - description: Filter berdasarkan status (pending, in_progress, completed)
+        in: query
+        name: status
+        type: string
+      - description: Filter berdasarkan prioritas (low, medium, high)
+        in: query
+        name: priority
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil Daftar Tugas
+      tags:
+      - Tasks
+    post:
+      consumes:
+      - application/json
+      description: Menambahkan tugas baru untuk user yang sedang login
+      parameters:
+      - description: Data Tugas
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/task-manager-api_internal_service.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Buat Tugas Baru
+      tags:
+      - Tasks
+  /tasks/{id}:
+    delete:
+      description: Menghapus tugas secara permanen (soft delete)
+      parameters:
+      - description: UUID Tugas
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Hapus Tugas
+      tags:
+      - Tasks
+    get:
+      description: Mengambil spesifik satu tugas berdasarkan ID
+      parameters:
+      - description: UUID Tugas
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil Detail Tugas
+      tags:
+      - Tasks
+    put:
+      consumes:
+      - application/json
+      description: Memperbarui judul, deskripsi, status, atau prioritas tugas
+      parameters:
+      - description: UUID Tugas
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Data Pembaruan
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/task-manager-api_internal_service.UpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Perbarui Tugas
+      tags:
+      - Tasks
+  /tasks/{id}/collaborators:
+    post:
+      consumes:
+      - application/json
+      description: Menambahkan pengguna lain ke dalam tugas dengan akses read_only
+        atau edit
+      parameters:
+      - description: UUID Tugas Utama
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Data Kolaborator
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/task-manager-api_internal_service.AddCollaboratorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Tambah Kolaborator
+      tags:
+      - Tasks
+  /tasks/{id}/subtasks:
+    post:
+      consumes:
+      - application/json
+      description: Menambahkan daftar sub-task ke dalam tugas utama (sangat cocok
+        untuk menyimpan hasil AI)
+      parameters:
+      - description: UUID Tugas Utama
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Array Sub Tugas
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/task-manager-api_internal_service.CreateSubTaskRequest'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Tambahkan Sub-Task
+      tags:
+      - Tasks
+  /tasks/{id}/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Mengunggah file dokumen (PDF) atau gambar (JPG, PNG) maksimal 5MB
+        ke dalam tugas spesifik
+      parameters:
+      - description: UUID Tugas
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: File Lampiran
+        in: formData
+        name: attachment
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/task-manager-api_pkg_utils.DefaultResponse'
+      security:
+      - BearerAuth: []
+      summary: Unggah Lampiran Tugas
+      tags:
+      - Tasks
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

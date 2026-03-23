@@ -1,0 +1,1 @@
+ALTER TABLE task_collaborators DROP COLUMN access_level;

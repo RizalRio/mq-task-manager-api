@@ -1,0 +1,1 @@
+ALTER TABLE task_collaborators ADD COLUMN access_level VARCHAR(20) DEFAULT 'read_only';
